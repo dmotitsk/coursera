@@ -19,7 +19,10 @@ except ImportError:
     sys.exit(1)
 
 
-REG_URL_FILE = re.compile(r'.*/([^./]+)\.([^./]+)$', re.I)
+REG_URL_FILE = re.compile(r'.*/([^./]+)\.([\w\d]+)$', re.I)
+REG_CONT_TYPE_EXT = re.compile(r'^.*/([\d\w]+)$', re.I)
+REG_TXT_RES = re.compile(r'^(.*format)=txt$', re.I)
+DEFAULT_EXT = {'pdf': 'pdf', 'ppt': 'ppt', 'txt': 'txt', 'movie': 'mp4'}
 
 
 class CourseraDownloader(object):
@@ -63,22 +66,52 @@ class CourseraDownloader(object):
                 self.download_resource(dir_name, name, resource)
 
     def item_is_needed(self, etalons, sample):
-        return (len(etalons) == 0 or
-                (len(etalons) > 0 and sample in etalons))
+        return (len(etalons) == 0) or (sample in etalons)
 
     def download_resource(self, dir_name, name, resource):
-        src = self.br.open(resource[0])
-        try:
-            url = src.geturl()
-            m = REG_URL_FILE.search(url)
+        res_url = resource[0]
+        res_type = resource[1]
+        url, content_type = self.get_real_resource_info(res_url)
+        ext = self.get_file_ext(url, content_type, res_type)
+        filename = self.get_file_name(dir_name, name, ext)
+        self.br.retrieve(url, filename)
+
+        # Download subtitles in .srt format together with .txt.
+        if res_type == 'txt':
+            m = REG_TXT_RES.match(url)
             if m:
-                ext = m.group(2)
-            else:
-                ext = src.info().get('content-type').split('/')[1]
-            filename = '%s.%s' % (os.path.join(dir_name, name), ext)
-            self.br.retrieve(url, filename)
-        finally:
-            src.close()
+                ext = 'srt'
+                url = '%s=%s' % (m.group(1), ext)
+                filename = self.get_file_name(dir_name, name, ext)
+                try:
+                    self.br.retrieve(url, filename)
+                except:
+                    # Ignore if there is no subtitles in .srt format.
+                    pass
+
+    def get_file_name(self, dir_name, name, ext):
+        return ('%s.%s' % (os.path.join(dir_name, name), ext)).lower()
+
+    def get_real_resource_info(self, res_url):
+        try:
+            src = self.br.open(res_url)
+            try:
+                url = src.geturl()
+                content_type = src.info().get('content-type', '')
+                return (url, content_type)
+            finally:
+                src.close()
+        except:
+            return (res_url, '')
+
+    def get_file_ext(self, url, content_type, res_type):
+        m = REG_URL_FILE.search(url)
+        if m:
+            return m.group(2)
+        m = REG_CONT_TYPE_EXT.match(content_type)
+        if m:
+            return m.group(1)
+        return DEFAULT_EXT[res_type]
 
     def get_parts(self, doc):
         return select(doc, 'ul.item_section_list')
@@ -92,7 +125,7 @@ class CourseraDownloader(object):
             url = a.get('href')
             img = select(a, 'img[src]')[0]
             src = img.get('src')
-            f_type = REG_URL_FILE.search(src).group(1)
+            f_type = REG_URL_FILE.search(src).group(1).lower()
             resources.append((url, f_type))
         return resources
 
@@ -124,7 +157,7 @@ def create_arg_parser():
     parser.add_argument('-r', '--rows', action=DecrementAction,
                         nargs='*', default=[], type=int)
     parser.add_argument('-t', '--types', nargs='*', default=[],
-                        choices=('pdf', 'ppt', 'txt', 'movie'))
+                        choices=DEFAULT_EXT.keys())
     return parser
 
 
