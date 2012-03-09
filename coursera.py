@@ -22,7 +22,12 @@ except ImportError:
 REG_URL_FILE = re.compile(r'.*/([^./]+)\.([\w\d]+)$', re.I)
 REG_CONT_TYPE_EXT = re.compile(r'^.*/([\d\w]+)$', re.I)
 REG_TXT_RES = re.compile(r'^(.*format)=txt$', re.I)
-DEFAULT_EXT = {'pdf': 'pdf', 'ppt': 'ppt', 'txt': 'txt', 'movie': 'mp4'}
+TYPES = ('pdf', 'ppt', 'txt', 'movie')
+
+# This dictionary is needed for not changing program interface
+# every time Coursera changes type icon names.
+TYPE_REPLACEMENT = {'movie': 'download'}
+DEFAULT_EXT = {'pdf': 'pdf', 'ppt': 'ppt', 'txt': 'txt', 'download': 'mp4'}
 
 
 class CourseraDownloader(object):
@@ -148,6 +153,13 @@ class DecrementAction(argparse.Action):
         setattr(namespace, self.dest, values)
 
 
+class TypeReplacementAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        values = [TYPE_REPLACEMENT[value] for value in values
+                  if value in TYPE_REPLACEMENT.keys()]
+        setattr(namespace, self.dest, values)
+
+
 def create_arg_parser():
     parser = argparse.ArgumentParser(
         description="Downloads materials from Coursera.")
@@ -156,8 +168,8 @@ def create_arg_parser():
                         nargs='*', default=[], type=int)
     parser.add_argument('-r', '--rows', action=DecrementAction,
                         nargs='*', default=[], type=int)
-    parser.add_argument('-t', '--types', nargs='*', default=[],
-                        choices=DEFAULT_EXT.keys())
+    parser.add_argument('-t', '--types', action=TypeReplacementAction,
+                        nargs='*', default=[], choices=TYPES)
     return parser
 
 
