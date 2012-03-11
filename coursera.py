@@ -54,7 +54,7 @@ class CourseraDownloader(object):
         parts = self.get_parts(doc)
         for idx, part in enumerate(parts):
             if self.item_is_needed(self.parts_ids, idx):
-                self.download_part(str(idx + 1), part)
+                self.download_part('%02d' % (idx + 1), part)
 
     def download_part(self, dir_name, part):
         if not os.path.exists(dir_name):
@@ -62,7 +62,7 @@ class CourseraDownloader(object):
         rows = self.get_rows(part)
         for idx, row in enumerate(rows):
             if self.item_is_needed(self.rows_ids, idx):
-                self.download_row(dir_name, str(idx + 1), row)
+                self.download_row(dir_name, '%02d' % (idx + 1), row)
 
     def download_row(self, dir_name, name, row):
         resources = self.get_resources(row)
