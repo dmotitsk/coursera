@@ -1,6 +1,6 @@
 ##Download Coursera materials.
 
-##Dependencies:
+###Dependencies:
 * Python 2.7 - for argparse
 * Mechanize
 * BeautifulSoup
