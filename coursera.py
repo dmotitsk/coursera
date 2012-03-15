@@ -148,15 +148,17 @@ class NlpDownloader(CourseraDownloader):
                  '?type=login&subtype=normal&email=')
     lectures_url = 'https://www.coursera.org/nlp/lecture/index'
 
+
 class GenericDownloader(object):
     @classmethod
     def downloader(cls, name):
-        cls = type(name.capitalize()+'Downloader', (CourseraDownloader,), dict(
-                    login_url= ('https://www.coursera.org/%s/auth/auth_redirector' % name + 
-                               ('?type=login&subtype=normal&email=')),
-                    lectures_url = 'https://www.coursera.org/%s/lecture/index' % name
-                    )
-                  )
+        dl_name = name.capitalize() + 'Downloader'
+        dl_bases = (CourseraDownloader,)
+        dl_dict = dict(
+            login_url=('https://www.coursera.org/%s/auth/auth_redirector' %
+                       name + ('?type=login&subtype=normal&email=')),
+            lectures_url='https://www.coursera.org/%s/lecture/index' % name)
+        cls = type(dl_name, dl_bases, dl_dict)
         return cls
 
 
@@ -169,7 +171,7 @@ class DecrementAction(argparse.Action):
 class TypeReplacementAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         values = [TYPE_REPLACEMENT[value] if value in TYPE_REPLACEMENT.keys()
-                  else value for value in values ]
+                  else value for value in values]
         setattr(namespace, self.dest, values)
 
 
@@ -193,7 +195,8 @@ def get_downloader_class(course):
     elif course == 'nlp':
         return NlpDownloader
     else:
-        log("Testing with a generic class based on the name provided (%s)" % course)
+        log("Testing with a generic class based on the name provided (%s)." %
+            course)
         return GenericDownloader.downloader(course)
 
 
@@ -219,6 +222,7 @@ def main():
     dl = dl_class(ns.parts, ns.rows, ns.types)
     dl.authenticate()
     dl.download()
+
 
 def log(message):
     if verbose:
