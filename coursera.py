@@ -29,6 +29,8 @@ TYPES = ('pdf', 'ppt', 'txt', 'movie')
 TYPE_REPLACEMENT = {'movie': 'download'}
 DEFAULT_EXT = {'pdf': 'pdf', 'ppt': 'ppt', 'txt': 'txt', 'download': 'mp4'}
 
+verbose = 0
+
 
 class CourseraDownloader(object):
     login_url = ''
@@ -146,6 +148,17 @@ class NlpDownloader(CourseraDownloader):
                  '?type=login&subtype=normal&email=')
     lectures_url = 'https://www.coursera.org/nlp/lecture/index'
 
+class GenericDownloader(object):
+    @classmethod
+    def downloader(cls, name):
+        cls = type(name.capitalize()+'Downloader', (CourseraDownloader,), dict(
+                    login_url= ('https://www.coursera.org/%s/auth/auth_redirector' % name + 
+                               ('?type=login&subtype=normal&email=')),
+                    lectures_url = 'https://www.coursera.org/%s/lecture/index' % name
+                    )
+                  )
+        return cls
+
 
 class DecrementAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
@@ -168,6 +181,7 @@ def create_arg_parser():
                         nargs='*', default=[], type=int)
     parser.add_argument('-r', '--rows', action=DecrementAction,
                         nargs='*', default=[], type=int)
+    parser.add_argument('-v', '--verbose', action='count')
     parser.add_argument('-t', '--types', action=TypeReplacementAction,
                         nargs='*', default=[], choices=TYPES)
     return parser
@@ -179,7 +193,8 @@ def get_downloader_class(course):
     elif course == 'nlp':
         return NlpDownloader
     else:
-        raise ValueError("Unknown course - %s." % course)
+        log("Testing with a generic class based on the name provided (%s)" % course)
+        return GenericDownloader.downloader(course)
 
 
 def test_parser():
@@ -196,13 +211,18 @@ def test_parser():
 
 
 def main():
+    global verbose
     arg_parser = create_arg_parser()
     ns = arg_parser.parse_args(sys.argv[1:])
+    verbose = ns.verbose
     dl_class = get_downloader_class(ns.course)
     dl = dl_class(ns.parts, ns.rows, ns.types)
     dl.authenticate()
     dl.download()
 
+def log(message):
+    if verbose:
+        print message
 
 if __name__ == '__main__':
     main()
