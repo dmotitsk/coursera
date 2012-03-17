@@ -54,18 +54,18 @@ class CourseraDownloader(object):
     def download(self):
         page = self.br.open(self.lectures_url)
         doc = BeautifulSoup(page)
-        parts = self.get_parts(doc)
+        parts, part_titles = self.get_parts(doc)
         for idx, part in enumerate(parts):
             if self.item_is_needed(self.parts_ids, idx):
-                self.download_part(os.path.join(TARGETDIR, self.class_name, '%02d' % (idx + 1)), part)
+                self.download_part(os.path.join(TARGETDIR, self.class_name, '%02d - %s' % ((idx + 1), part_titles[idx].string.strip())), part)
 
     def download_part(self, dir_name, part):
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
-        rows = self.get_rows(part)
+        rows, row_names = self.get_rows(part)
         for idx, row in enumerate(rows):
             if self.item_is_needed(self.rows_ids, idx):
-                self.download_row(dir_name, '%02d' % (idx + 1), row)
+                self.download_row(dir_name, '%02d - %s' % ((idx + 1), row_names[idx].string.strip()), row)
 
     def download_row(self, dir_name, name, row):
         resources = self.get_resources(row)
@@ -99,7 +99,8 @@ class CourseraDownloader(object):
                     pass
 
     def get_file_name(self, dir_name, name, ext):
-        return ('%s.%s' % (os.path.join(dir_name, name), ext)).lower()
+        return ('%s.%s' % (os.path.join(dir_name, name), ext))
+    
 
     def get_real_resource_info(self, res_url):
         try:
@@ -123,10 +124,10 @@ class CourseraDownloader(object):
         return DEFAULT_EXT[res_type]
 
     def get_parts(self, doc):
-        return select(doc, 'ul.item_section_list')
+        return select(doc, 'ul.item_section_list'), select(doc, 'h3.list_header')
 
     def get_rows(self, doc):
-        return select(doc, 'div.item_resource')
+        return select(doc, 'div.item_resource'), select(doc, 'a.lecture-link')
 
     def get_resources(self, doc):
         resources = []
