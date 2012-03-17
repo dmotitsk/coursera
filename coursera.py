@@ -13,9 +13,9 @@ except ImportError:
 
 from soupselect import select
 try:
-    from config import EMAIL, PASSWORD
+    from config import EMAIL, PASSWORD, TARGETDIR
 except ImportError:
-    print "You should provide config.py file with EMAIL and PASSWORD."
+    print "You should provide config.py file with EMAIL,PASSWORD and TARGETDIR."
     sys.exit(1)
 
 
@@ -58,7 +58,7 @@ class CourseraDownloader(object):
         os.mkdir(self.class_name)
         for idx, part in enumerate(parts):
             if self.item_is_needed(self.parts_ids, idx):
-                self.download_part(os.path.join(self.class_name, '%02d' % (idx + 1)), part)
+                self.download_part(os.path.join(TARGETDIR, self.class_name, '%02d' % (idx + 1)), part)
 
     def download_part(self, dir_name, part):
         if not os.path.exists(dir_name):
