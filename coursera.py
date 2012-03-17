@@ -29,7 +29,7 @@ TYPES = ('pdf', 'ppt', 'txt', 'movie')
 TYPE_REPLACEMENT = {'movie': 'download'}
 DEFAULT_EXT = {'pdf': 'pdf', 'ppt': 'ppt', 'txt': 'txt', 'download': 'mp4'}
 
-verbose = 0
+verbose = 2
 
 
 class CourseraDownloader(object):
@@ -55,14 +55,13 @@ class CourseraDownloader(object):
         page = self.br.open(self.lectures_url)
         doc = BeautifulSoup(page)
         parts = self.get_parts(doc)
-        os.mkdir(self.class_name)
         for idx, part in enumerate(parts):
             if self.item_is_needed(self.parts_ids, idx):
                 self.download_part(os.path.join(TARGETDIR, self.class_name, '%02d' % (idx + 1)), part)
 
     def download_part(self, dir_name, part):
         if not os.path.exists(dir_name):
-            os.mkdir(dir_name)
+            os.makedirs(dir_name)
         rows = self.get_rows(part)
         for idx, row in enumerate(rows):
             if self.item_is_needed(self.rows_ids, idx):
@@ -83,6 +82,7 @@ class CourseraDownloader(object):
         url, content_type = self.get_real_resource_info(res_url)
         ext = self.get_file_ext(url, content_type, res_type)
         filename = self.get_file_name(dir_name, name, ext)
+        log('downloading file %s' % filename)
         self.br.retrieve(url, filename)
 
         # Download subtitles in .srt format together with .txt.
@@ -181,8 +181,6 @@ def create_arg_parser():
 
 
 def get_downloader_class(course):
-    log("Testing with a generic class based on the name provided (%s)." %
-            course)
     return GenericDownloader.downloader(course)
 
 
