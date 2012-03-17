@@ -35,6 +35,7 @@ verbose = 0
 class CourseraDownloader(object):
     login_url = ''
     lectures_url = ''
+    class_name = ''
 
     def __init__(self, parts_ids=[], rows_ids=[], types=[]):
         self.parts_ids = parts_ids
@@ -54,9 +55,10 @@ class CourseraDownloader(object):
         page = self.br.open(self.lectures_url)
         doc = BeautifulSoup(page)
         parts = self.get_parts(doc)
+        os.mkdir(self.class_name)
         for idx, part in enumerate(parts):
             if self.item_is_needed(self.parts_ids, idx):
-                self.download_part('%02d' % (idx + 1), part)
+                self.download_part(os.path.join(self.class_name, '%02d' % (idx + 1)), part)
 
     def download_part(self, dir_name, part):
         if not os.path.exists(dir_name):
@@ -141,12 +143,26 @@ class SaasDowloader(CourseraDownloader):
     login_url = ('https://www.coursera.org/saas/auth/auth_redirector' +
                  '?type=login&subtype=normal&email=')
     lectures_url = 'https://www.coursera.org/saas/lecture/index'
+    class_name = 'saas'
 
 
 class NlpDownloader(CourseraDownloader):
     login_url = ('https://www.coursera.org/nlp/auth/auth_redirector' +
                  '?type=login&subtype=normal&email=')
     lectures_url = 'https://www.coursera.org/nlp/lecture/index'
+    class_name = 'nlp'
+
+class ModelThinkingDownloader (CourseraDownloader):
+    login_url = ('https://www.coursera.org/modelthinking/auth/auth_redirector' +
+                 '?type=login&subtype=normal&email=')
+    lectures_url = 'https://www.coursera.org/modelthinking/lecture/index'
+    class_name = 'model'
+
+class AlgoDownloader (CourseraDownloader):
+    login_url = ('https://www.coursera.org/algo/auth/auth_redirector' +
+                 '?type=login&subtype=normal&email=')
+    lectures_url = 'https://www.coursera.org/algo/lecture/index'
+    class_name = 'algo'
 
 
 class GenericDownloader(object):
@@ -194,6 +210,10 @@ def get_downloader_class(course):
         return SaasDowloader
     elif course == 'nlp':
         return NlpDownloader
+    elif course == 'model':
+        return ModelThinkingDownloader
+    elif course == 'algo':
+        return AlgoDownloader
     else:
         log("Testing with a generic class based on the name provided (%s)." %
             course)
