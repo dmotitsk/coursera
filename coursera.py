@@ -139,32 +139,6 @@ class CourseraDownloader(object):
         return resources
 
 
-class SaasDowloader(CourseraDownloader):
-    login_url = ('https://www.coursera.org/saas/auth/auth_redirector' +
-                 '?type=login&subtype=normal&email=')
-    lectures_url = 'https://www.coursera.org/saas/lecture/index'
-    class_name = 'saas'
-
-
-class NlpDownloader(CourseraDownloader):
-    login_url = ('https://www.coursera.org/nlp/auth/auth_redirector' +
-                 '?type=login&subtype=normal&email=')
-    lectures_url = 'https://www.coursera.org/nlp/lecture/index'
-    class_name = 'nlp'
-
-class ModelThinkingDownloader (CourseraDownloader):
-    login_url = ('https://www.coursera.org/modelthinking/auth/auth_redirector' +
-                 '?type=login&subtype=normal&email=')
-    lectures_url = 'https://www.coursera.org/modelthinking/lecture/index'
-    class_name = 'model'
-
-class AlgoDownloader (CourseraDownloader):
-    login_url = ('https://www.coursera.org/algo/auth/auth_redirector' +
-                 '?type=login&subtype=normal&email=')
-    lectures_url = 'https://www.coursera.org/algo/lecture/index'
-    class_name = 'algo'
-
-
 class GenericDownloader(object):
     @classmethod
     def downloader(cls, name):
@@ -173,7 +147,8 @@ class GenericDownloader(object):
         dl_dict = dict(
             login_url=('https://www.coursera.org/%s/auth/auth_redirector' %
                        name + ('?type=login&subtype=normal&email=')),
-            lectures_url='https://www.coursera.org/%s/lecture/index' % name)
+            lectures_url='https://www.coursera.org/%s/lecture/index' % name,
+            class_name=name)
         cls = type(dl_name, dl_bases, dl_dict)
         return cls
 
@@ -206,18 +181,9 @@ def create_arg_parser():
 
 
 def get_downloader_class(course):
-    if course == 'saas':
-        return SaasDowloader
-    elif course == 'nlp':
-        return NlpDownloader
-    elif course == 'model':
-        return ModelThinkingDownloader
-    elif course == 'algo':
-        return AlgoDownloader
-    else:
-        log("Testing with a generic class based on the name provided (%s)." %
+    log("Testing with a generic class based on the name provided (%s)." %
             course)
-        return GenericDownloader.downloader(course)
+    return GenericDownloader.downloader(course)
 
 
 def test_parser():
