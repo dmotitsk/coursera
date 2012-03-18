@@ -8,16 +8,20 @@ try:
     from mechanize import Browser
 except ImportError:
     print ("Not all the nessesary libs are installed. " +
-            "Please see requirements.txt.")
+           "Please see requirements.txt.")
     sys.exit(1)
 
 from soupselect import select
 try:
-    from config import EMAIL, PASSWORD, TARGETDIR
+    from config import EMAIL, PASSWORD
 except ImportError:
-    print "You should provide config.py file with EMAIL, PASSWORD
-    and TARGETDIR."
+    print "You should provide config.py file with EMAIL and PASSWORD."
     sys.exit(1)
+
+try:
+    from config import TARGETDIR
+except ImportError:
+    TARGETDIR = ''
 
 
 REG_URL_FILE = re.compile(r'.*/([^./]+)\.([\w\d]+)$', re.I)
@@ -53,26 +57,28 @@ class CourseraDownloader(object):
         self.br.submit()
 
     def download(self):
+        course_dir = os.path.join(TARGETDIR, self.course_name)
+        if not os.path.exists(course_dir):
+            os.mkdir(course_dir)
         page = self.br.open(self.lectures_url)
         doc = BeautifulSoup(page)
         parts, part_titles = self.get_parts(doc)
         for idx, part in enumerate(parts):
             if self.item_is_needed(self.parts_ids, idx):
-                path = os.path.join(
-                        TARGETDIR,
-                        self.course_name,
-                        '%02d - %s' % ((idx + 1),
-                        part_titles[idx].string.strip()))
-                self.download_part(path, part)
+                part_dir = os.path.join(
+                    course_dir,
+                    '%02d - %s' % ((idx + 1),
+                    part_titles[idx].string.strip()))
+                self.download_part(part_dir, part)
 
     def download_part(self, dir_name, part):
         if not os.path.exists(dir_name):
-            os.makedirs(dir_name)
+            os.mkdir(dir_name)
         rows, row_names = self.get_rows(part)
         for idx, row in enumerate(rows):
             if self.item_is_needed(self.rows_ids, idx):
                 self.download_row(dir_name, '%02d - %s' % ((idx + 1),
-                    row_names[idx].string.strip()), row)
+                                  row_names[idx].string.strip()), row)
 
     def download_row(self, dir_name, name, row):
         resources = self.get_resources(row)
@@ -80,16 +86,13 @@ class CourseraDownloader(object):
             if self.item_is_needed(self.types, resource[1]):
                 self.download_resource(dir_name, name, resource)
 
-    def item_is_needed(self, etalons, sample):
-        return (len(etalons) == 0) or (sample in etalons)
-
     def download_resource(self, dir_name, name, resource):
         res_url = resource[0]
         res_type = resource[1]
         url, content_type = self.get_real_resource_info(res_url)
         ext = self.get_file_ext(url, content_type, res_type)
         filename = self.get_file_name(dir_name, name, ext)
-        log('downloading file %s' % filename)
+        log("downloading file '%s'" % filename)
         self.br.retrieve(url, filename)
 
         # Download subtitles in .srt format together with .txt.
@@ -104,6 +107,9 @@ class CourseraDownloader(object):
                 except:
                     # Ignore if there is no subtitles in .srt format.
                     pass
+
+    def item_is_needed(self, etalons, sample):
+        return (len(etalons) == 0) or (sample in etalons)
 
     def get_file_name(self, dir_name, name, ext):
         return ('%s.%s' % (os.path.join(dir_name, name), ext))
@@ -131,8 +137,8 @@ class CourseraDownloader(object):
 
     def get_parts(self, doc):
         items = select(doc, 'ul.item_section_list')
-        headers = select(doc, 'h3.list_header')
-        return items, headers
+        titles = select(doc, 'h3.list_header')
+        return items, titles
 
     def get_rows(self, doc):
         return select(doc, 'div.item_resource'), select(doc, 'a.lecture-link')
@@ -150,15 +156,14 @@ class CourseraDownloader(object):
 
 class GenericDownloader(object):
     @classmethod
-    def downloader(cls, name):
-        dl_name = name.capitalize() + 'Downloader'
+    def downloader(cls, course):
+        dl_name = course.capitalize() + 'Downloader'
         dl_bases = (CourseraDownloader,)
         dl_dict = dict(
-                login_url=('https://www.coursera.org/%s/auth/auth_redirector' %
-                    name + ('?type=login&subtype=normal&email=')),
-                lectures_url='https://www.coursera.org/%s/lecture/index'
-                % name,
-                course_name=name)
+            login_url=('https://www.coursera.org/%s/auth/auth_redirector' %
+                       course + ('?type=login&subtype=normal&email=')),
+            lectures_url='https://www.coursera.org/%s/lecture/index' % course,
+            course_name=course)
         cls = type(dl_name, dl_bases, dl_dict)
         return cls
 
@@ -178,33 +183,20 @@ class TypeReplacementAction(argparse.Action):
 
 def create_arg_parser():
     parser = argparse.ArgumentParser(
-            description="Downloads materials from Coursera.")
+        description="Downloads materials from Coursera.")
     parser.add_argument('course')
     parser.add_argument('-p', '--parts', action=DecrementAction,
-            nargs='*', default=[], type=int)
+                        nargs='*', default=[], type=int)
     parser.add_argument('-r', '--rows', action=DecrementAction,
-            nargs='*', default=[], type=int)
-    parser.add_argument('-v', '--verbose', action='count')
+                        nargs='*', default=[], type=int)
     parser.add_argument('-t', '--types', action=TypeReplacementAction,
-            nargs='*', default=[], choices=TYPES)
+                        nargs='*', default=[], choices=TYPES)
+    parser.add_argument('-v', '--verbose', action='count')
     return parser
 
 
 def get_downloader_class(course):
     return GenericDownloader.downloader(course)
-
-
-def test_parser():
-    dl = CourseraDownloader()
-    with open('test.html') as f:
-        doc = BeautifulSoup(f)
-        parts = dl.get_parts(doc)
-        for part in parts:
-            rows = dl.get_rows(part)
-            for row in rows:
-                resources = dl.get_resources(row)
-                for resource in resources:
-                    print resource
 
 
 def main():
