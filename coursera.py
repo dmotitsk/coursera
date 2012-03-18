@@ -8,14 +8,15 @@ try:
     from mechanize import Browser
 except ImportError:
     print ("Not all the nessesary libs are installed. " +
-           "Please see requirements.txt.")
+            "Please see requirements.txt.")
     sys.exit(1)
 
 from soupselect import select
 try:
     from config import EMAIL, PASSWORD, TARGETDIR
 except ImportError:
-    print "You should provide config.py file with EMAIL,PASSWORD and TARGETDIR."
+    print "You should provide config.py file with EMAIL, PASSWORD
+    and TARGETDIR."
     sys.exit(1)
 
 
@@ -29,13 +30,13 @@ TYPES = ('pdf', 'ppt', 'txt', 'movie')
 TYPE_REPLACEMENT = {'movie': 'download'}
 DEFAULT_EXT = {'pdf': 'pdf', 'ppt': 'ppt', 'txt': 'txt', 'download': 'mp4'}
 
-verbose = 2
+verbose = 0
 
 
 class CourseraDownloader(object):
     login_url = ''
     lectures_url = ''
-    class_name = ''
+    course_name = ''
 
     def __init__(self, parts_ids=[], rows_ids=[], types=[]):
         self.parts_ids = parts_ids
@@ -57,7 +58,12 @@ class CourseraDownloader(object):
         parts, part_titles = self.get_parts(doc)
         for idx, part in enumerate(parts):
             if self.item_is_needed(self.parts_ids, idx):
-                self.download_part(os.path.join(TARGETDIR, self.class_name, '%02d - %s' % ((idx + 1), part_titles[idx].string.strip())), part)
+                path = os.path.join(
+                        TARGETDIR,
+                        self.course_name,
+                        '%02d - %s' % ((idx + 1),
+                        part_titles[idx].string.strip()))
+                self.download_part(path, part)
 
     def download_part(self, dir_name, part):
         if not os.path.exists(dir_name):
@@ -65,7 +71,8 @@ class CourseraDownloader(object):
         rows, row_names = self.get_rows(part)
         for idx, row in enumerate(rows):
             if self.item_is_needed(self.rows_ids, idx):
-                self.download_row(dir_name, '%02d - %s' % ((idx + 1), row_names[idx].string.strip()), row)
+                self.download_row(dir_name, '%02d - %s' % ((idx + 1),
+                    row_names[idx].string.strip()), row)
 
     def download_row(self, dir_name, name, row):
         resources = self.get_resources(row)
@@ -100,7 +107,6 @@ class CourseraDownloader(object):
 
     def get_file_name(self, dir_name, name, ext):
         return ('%s.%s' % (os.path.join(dir_name, name), ext))
-    
 
     def get_real_resource_info(self, res_url):
         try:
@@ -124,7 +130,9 @@ class CourseraDownloader(object):
         return DEFAULT_EXT[res_type]
 
     def get_parts(self, doc):
-        return select(doc, 'ul.item_section_list'), select(doc, 'h3.list_header')
+        items = select(doc, 'ul.item_section_list')
+        headers = select(doc, 'h3.list_header')
+        return items, headers
 
     def get_rows(self, doc):
         return select(doc, 'div.item_resource'), select(doc, 'a.lecture-link')
@@ -146,10 +154,11 @@ class GenericDownloader(object):
         dl_name = name.capitalize() + 'Downloader'
         dl_bases = (CourseraDownloader,)
         dl_dict = dict(
-            login_url=('https://www.coursera.org/%s/auth/auth_redirector' %
-                       name + ('?type=login&subtype=normal&email=')),
-            lectures_url='https://www.coursera.org/%s/lecture/index' % name,
-            class_name=name)
+                login_url=('https://www.coursera.org/%s/auth/auth_redirector' %
+                    name + ('?type=login&subtype=normal&email=')),
+                lectures_url='https://www.coursera.org/%s/lecture/index'
+                % name,
+                course_name=name)
         cls = type(dl_name, dl_bases, dl_dict)
         return cls
 
@@ -163,21 +172,21 @@ class DecrementAction(argparse.Action):
 class TypeReplacementAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         values = [TYPE_REPLACEMENT[value] if value in TYPE_REPLACEMENT.keys()
-                  else value for value in values]
+                else value for value in values]
         setattr(namespace, self.dest, values)
 
 
 def create_arg_parser():
     parser = argparse.ArgumentParser(
-        description="Downloads materials from Coursera.")
+            description="Downloads materials from Coursera.")
     parser.add_argument('course')
     parser.add_argument('-p', '--parts', action=DecrementAction,
-                        nargs='*', default=[], type=int)
+            nargs='*', default=[], type=int)
     parser.add_argument('-r', '--rows', action=DecrementAction,
-                        nargs='*', default=[], type=int)
+            nargs='*', default=[], type=int)
     parser.add_argument('-v', '--verbose', action='count')
     parser.add_argument('-t', '--types', action=TypeReplacementAction,
-                        nargs='*', default=[], choices=TYPES)
+            nargs='*', default=[], choices=TYPES)
     return parser
 
 
