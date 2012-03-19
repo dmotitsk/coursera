@@ -92,8 +92,7 @@ class CourseraDownloader(object):
         url, content_type = self.get_real_resource_info(res_url)
         ext = self.get_file_ext(url, content_type, res_type)
         filename = self.get_file_name(dir_name, name, ext)
-        log("downloading file '%s'" % filename)
-        self.br.retrieve(url, filename)
+        self.retrieve(url, filename)
 
         # Download subtitles in .srt format together with .txt.
         if res_type == 'txt':
@@ -103,16 +102,27 @@ class CourseraDownloader(object):
                 url = '%s=%s' % (m.group(1), ext)
                 filename = self.get_file_name(dir_name, name, ext)
                 try:
-                    self.br.retrieve(url, filename)
+                    self.retrieve(url, filename)
                 except:
                     # Ignore if there is no subtitles in .srt format.
                     pass
+
+    def retrieve(self, url, filename):
+        log("downloading file '%s'" % filename)
+        try:
+            self.br.retrieve(url, filename)
+        except:
+            log("couldn't download the file.")
 
     def item_is_needed(self, etalons, sample):
         return (len(etalons) == 0) or (sample in etalons)
 
     def get_file_name(self, dir_name, name, ext):
+        name = self.escape_name(name)
         return ('%s.%s' % (os.path.join(dir_name, name), ext))
+
+    def escape_name(self, name):
+        return name.replace('/', '_').replace('\\', '_')
 
     def get_real_resource_info(self, res_url):
         try:
@@ -160,8 +170,8 @@ class GenericDownloader(object):
         dl_name = course.capitalize() + 'Downloader'
         dl_bases = (CourseraDownloader,)
         dl_dict = dict(
-            login_url=('https://www.coursera.org/%s/auth/auth_redirector' %
-                       course + ('?type=login&subtype=normal&email=')),
+            login_url=('https://www.coursera.org/%s/auth/auth_redirector' +
+                       '?type=login&subtype=normal&email=') % course,
             lectures_url='https://www.coursera.org/%s/lecture/index' % course,
             course_name=course)
         cls = type(dl_name, dl_bases, dl_dict)
