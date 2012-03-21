@@ -42,10 +42,11 @@ class CourseraDownloader(object):
     lectures_url = ''
     course_name = ''
 
-    def __init__(self, parts_ids=[], rows_ids=[], types=[]):
-        self.parts_ids = parts_ids
-        self.rows_ids = rows_ids
-        self.types = types
+    def __init__(self, config):
+        self.parts_ids = config['parts']
+        self.rows_ids = config['rows']
+        self.types = config['types']
+        self.force = config['force']
         self.br = Browser()
         self.br.set_handle_robots(False)
 
@@ -108,11 +109,14 @@ class CourseraDownloader(object):
                     pass
 
     def retrieve(self, url, filename):
-        log("downloading file '%s'" % filename)
-        try:
-            self.br.retrieve(url, filename)
-        except:
-            log("couldn't download the file.")
+        if os.path.exists(filename) and not self.force:
+            log("skipping file '%s'" % filename)
+        else:
+            log("downloading file '%s'" % filename)
+            try:
+                self.br.retrieve(url, filename)
+            except:
+                log("couldn't download the file")
 
     def item_is_needed(self, etalons, sample):
         return (len(etalons) == 0) or (sample in etalons)
@@ -201,8 +205,18 @@ def create_arg_parser():
                         nargs='*', default=[], type=int)
     parser.add_argument('-t', '--types', action=TypeReplacementAction,
                         nargs='*', default=[], choices=TYPES)
+    parser.add_argument('-f', '--force', action='store_true')
     parser.add_argument('-v', '--verbose', action='count')
     return parser
+
+
+def create_config(ns):
+    config = dict()
+    config['parts'] = ns.parts
+    config['rows'] = ns.rows
+    config['types'] = ns.types
+    config['force'] = ns.force
+    return config
 
 
 def get_downloader_class(course):
@@ -213,9 +227,10 @@ def main():
     global verbose
     arg_parser = create_arg_parser()
     ns = arg_parser.parse_args(sys.argv[1:])
+    config = create_config(ns)
     verbose = ns.verbose
     dl_class = get_downloader_class(ns.course)
-    dl = dl_class(ns.parts, ns.rows, ns.types)
+    dl = dl_class(config)
     dl.authenticate()
     dl.download()
 
