@@ -39,6 +39,7 @@ verbose = 0
 
 class CourseraDownloader(object):
     login_url = ''
+    home_url = ''
     lectures_url = ''
     course_name = ''
 
@@ -56,6 +57,17 @@ class CourseraDownloader(object):
         self.br['email'] = EMAIL
         self.br['password'] = PASSWORD
         self.br.submit()
+        home_page = self.br.open(self.home_url)
+        if not self.is_authenticated(home_page.read()):
+            log("couldn't authenticate")
+            sys.exit(1)
+        log("successfully authenticated")
+
+    def is_authenticated(self, test_page):
+        m = re.search(
+            'https://class.coursera.org/%s/auth/logout' % self.course_name,
+            test_page)
+        return m is not None
 
     def download(self):
         course_dir = os.path.join(TARGETDIR, self.course_name)
@@ -176,6 +188,7 @@ class GenericDownloader(object):
         dl_dict = dict(
             login_url=('https://www.coursera.org/%s/auth/auth_redirector' +
                        '?type=login&subtype=normal&email=') % course,
+            home_url='https://class.coursera.org/%s/class/index' % course,
             lectures_url='https://www.coursera.org/%s/lecture/index' % course,
             course_name=course)
         cls = type(dl_name, dl_bases, dl_dict)
