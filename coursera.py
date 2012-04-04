@@ -27,12 +27,18 @@ except ImportError:
 REG_URL_FILE = re.compile(r'.*/([^./]+)\.([\w\d]+)$', re.I)
 REG_CONT_TYPE_EXT = re.compile(r'^.*/([\d\w]+)$', re.I)
 REG_TXT_RES = re.compile(r'^(.*format)=txt$', re.I)
-TYPES = ('pdf', 'ppt', 'txt', 'movie')
+TYPES = ('pdf', 'ppt', 'txt', 'srt', 'movie')
 
 # This dictionary is needed for not changing program interface
 # every time Coursera changes type icon names.
-TYPE_REPLACEMENT = {'movie': 'download'}
-DEFAULT_EXT = {'pdf': 'pdf', 'ppt': 'ppt', 'txt': 'txt', 'download': 'mp4'}
+TYPE_REPLACEMENT = {
+    'txt': 'subtitles (text)', 'srt': 'subtitles (srt)',
+    'movie': 'video (mp4)'
+}
+DEFAULT_EXT = {
+    'pdf': 'pdf', 'ppt': 'ppt', 'subtitles (text)': 'txt',
+    'subtitles (srt)': 'srt', 'video (mp4)': 'mp4'
+}
 
 verbose = 0
 
@@ -81,7 +87,7 @@ class CourseraDownloader(object):
                 part_dir = os.path.join(
                     course_dir,
                     '%02d - %s' % ((idx + 1),
-                    part_titles[idx].string.strip()))
+                    part_titles[idx].text.strip()))
                 self.download_part(part_dir, part)
 
     def download_part(self, dir_name, part):
@@ -91,7 +97,7 @@ class CourseraDownloader(object):
         for idx, row in enumerate(rows):
             if self.item_is_needed(self.rows_ids, idx):
                 self.download_row(dir_name, '%02d - %s' % ((idx + 1),
-                                  row_names[idx].string.strip()), row)
+                                  row_names[idx].text.strip()), row)
 
     def download_row(self, dir_name, name, row):
         resources = self.get_resources(row)
@@ -107,19 +113,6 @@ class CourseraDownloader(object):
         filename = self.get_file_name(dir_name, name, ext)
         self.retrieve(url, filename)
 
-        # Download subtitles in .srt format together with .txt.
-        if res_type == 'txt':
-            m = REG_TXT_RES.match(url)
-            if m:
-                ext = 'srt'
-                url = '%s=%s' % (m.group(1), ext)
-                filename = self.get_file_name(dir_name, name, ext)
-                try:
-                    self.retrieve(url, filename)
-                except:
-                    # Ignore if there is no subtitles in .srt format.
-                    pass
-
     def retrieve(self, url, filename):
         if os.path.exists(filename) and not self.force:
             log("skipping file '%s'" % filename)
@@ -127,6 +120,8 @@ class CourseraDownloader(object):
             log("downloading file '%s'" % filename)
             try:
                 self.br.retrieve(url, filename)
+            except KeyboardInterrupt:
+                raise
             except:
                 log("couldn't download the file")
 
@@ -167,16 +162,16 @@ class CourseraDownloader(object):
         return items, titles
 
     def get_rows(self, doc):
-        return select(doc, 'div.item_resource'), select(doc, 'a.lecture-link')
+        rows = select(doc, 'div.item_resource')
+        titles = select(doc, 'a.lecture-link')
+        return rows, titles
 
     def get_resources(self, doc):
         resources = []
         for a in select(doc, 'a'):
             url = a.get('href')
-            img = select(a, 'img[src]')[0]
-            src = img.get('src')
-            f_type = REG_URL_FILE.search(src).group(1).lower()
-            resources.append((url, f_type))
+            title = a.get('title').lower()
+            resources.append((url, title))
         return resources
 
 
@@ -189,7 +184,8 @@ class GenericDownloader(object):
             login_url=('https://www.coursera.org/%s/auth/auth_redirector' +
                        '?type=login&subtype=normal&email=') % course,
             home_url='https://class.coursera.org/%s/class/index' % course,
-            lectures_url='https://www.coursera.org/%s/lecture/index' % course,
+            lectures_url='https://class.coursera.org/%s/lecture/index' %
+                         course,
             course_name=course)
         cls = type(dl_name, dl_bases, dl_dict)
         return cls
