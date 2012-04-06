@@ -23,11 +23,6 @@ try:
 except ImportError:
     TARGETDIR = ''
 
-try:
-    from config import ESCAPE_FILE_NAME
-except ImportError:
-    ESCAPE_FILE_NAME = False
-
 
 ILLEGAL_CHARS = ('<', '>', ':', '"', '|', '?', '*')
 REG_URL_FILE = re.compile(r'.*/([^./]+)\.([\w\d]+)$', re.I)
@@ -60,6 +55,7 @@ class CourseraDownloader(object):
         self.rows_ids = config['rows']
         self.types = config['types']
         self.force = config['force']
+        self.escape = config['escape']
         self.br = Browser()
         self.br.set_handle_robots(False)
 
@@ -140,7 +136,7 @@ class CourseraDownloader(object):
 
     def escape_name(self, name):
         name = name.replace('/', '_').replace('\\', '_')
-        if ESCAPE_FILE_NAME:
+        if self.escape:
             for c in ILLEGAL_CHARS:
                 name = name.replace(c, '_')
         return name
@@ -225,6 +221,7 @@ def create_arg_parser():
     parser.add_argument('-t', '--types', action=TypeReplacementAction,
                         nargs='*', default=[], choices=TYPES)
     parser.add_argument('-f', '--force', action='store_true')
+    parser.add_argument('-e', '--escape', action='store_true')
     parser.add_argument('-v', '--verbose', action='count')
     return parser
 
@@ -235,6 +232,7 @@ def create_config(ns):
     config['rows'] = ns.rows
     config['types'] = ns.types
     config['force'] = ns.force
+    config['escape'] = ns.escape
     return config
 
 
