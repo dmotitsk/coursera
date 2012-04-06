@@ -93,7 +93,7 @@ class CourseraDownloader(object):
                 part_dir = os.path.join(
                     course_dir,
                     '%02d - %s' % ((idx + 1),
-                    part_titles[idx].text.strip()))
+                    self.escape_name(part_titles[idx].text.strip())))
                 self.download_part(part_dir, part)
 
     def download_part(self, dir_name, part):
@@ -139,10 +139,10 @@ class CourseraDownloader(object):
         return ('%s.%s' % (os.path.join(dir_name, name), ext))
 
     def escape_name(self, name):
-        name.replace('/', '_').replace('\\', '_')
+        name = name.replace('/', '_').replace('\\', '_')
         if ESCAPE_FILE_NAME:
             for c in ILLEGAL_CHARS:
-                name.replace(c, '_')
+                name = name.replace(c, '_')
         return name
 
     def get_real_resource_info(self, res_url):
