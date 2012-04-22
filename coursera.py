@@ -256,19 +256,21 @@ def log(message):
     if verbose:
         print message
 
+
 def reporter(blocknum, bs, size):
     if verbose:
-        block_count = size/bs+1 if size % bs != 0 else size/bs
-        fraction = float(blocknum)/block_count
+        block_count = size / bs + 1 if size % bs != 0 else size / bs
+        fraction = float(blocknum) / block_count
         width = 50
         stars = '*' * int(width * fraction)
         spaces = ' ' * (width - len(stars))
-        info = '[ %s%s ] [%s %%]' %(stars, spaces, int(fraction * 100))
+        info = '[ %s%s ] [%s %%]' % (stars, spaces, int(fraction * 100))
         sys.stdout.write(info)
         if blocknum < block_count:
             sys.stdout.write('\r')
         else:
             sys.stdout.write('\n')
+
 
 if __name__ == '__main__':
     main()
