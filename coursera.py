@@ -119,11 +119,15 @@ class CourseraDownloader(object):
             logging.info("skipping file '%s'" % filename)
         else:
             logging.info("downloading file '%s'" % filename)
+            logging.debug("URL: %s" % url)
             try:
                 self.br.retrieve(url, filename, reporter)
             except KeyboardInterrupt:
+                if os.path.exists(filename): os.remove(filename)
                 raise
-            except:
+            except Exception, ex:
+                if os.path.exists(filename): os.remove(filename)
+                logging.debug(ex)
                 logging.info("couldn't download the file")
 
     def item_is_needed(self, etalons, sample):
@@ -210,7 +214,7 @@ class TypeReplacementAction(argparse.Action):
 
 
 def reporter(blocknum, bs, size):
-    if is_verbose():
+    if is_verbose() and size > 0:
         block_count = size / bs + 1 if size % bs != 0 else size / bs
         fraction = float(blocknum) / block_count
         width = 50
