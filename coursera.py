@@ -1,4 +1,5 @@
 import argparse
+import logging
 import os
 import re
 import sys
@@ -41,8 +42,6 @@ DEFAULT_EXT = {
     'subtitles (srt)': 'srt', 'video (mp4)': 'mp4'
 }
 
-verbose = 0
-
 
 class CourseraDownloader(object):
     login_url = ''
@@ -67,9 +66,9 @@ class CourseraDownloader(object):
         self.br.submit()
         home_page = self.br.open(self.home_url)
         if not self.is_authenticated(home_page.read()):
-            log("couldn't authenticate")
+            logging.critical("couldn't authenticate")
             sys.exit(1)
-        log("successfully authenticated")
+        logging.info("successfully authenticated")
 
     def is_authenticated(self, test_page):
         m = re.search(
@@ -117,15 +116,15 @@ class CourseraDownloader(object):
 
     def retrieve(self, url, filename):
         if os.path.exists(filename) and not self.force:
-            log("skipping file '%s'" % filename)
+            logging.info("skipping file '%s'" % filename)
         else:
-            log("downloading file '%s'" % filename)
+            logging.info("downloading file '%s'" % filename)
             try:
                 self.br.retrieve(url, filename, reporter)
             except KeyboardInterrupt:
                 raise
             except:
-                log("couldn't download the file")
+                logging.info("couldn't download the file")
 
     def item_is_needed(self, etalons, sample):
         return (len(etalons) == 0) or (sample in etalons)
@@ -210,6 +209,21 @@ class TypeReplacementAction(argparse.Action):
         setattr(namespace, self.dest, values)
 
 
+def reporter(blocknum, bs, size):
+    if is_verbose():
+        block_count = size / bs + 1 if size % bs != 0 else size / bs
+        fraction = float(blocknum) / block_count
+        width = 50
+        stars = '*' * int(width * fraction)
+        spaces = ' ' * (width - len(stars))
+        info = '[ %s%s ] [%s %%]' % (stars, spaces, int(fraction * 100))
+        sys.stdout.write(info)
+        if blocknum < block_count:
+            sys.stdout.write('\r')
+        else:
+            sys.stdout.write('\n')
+
+
 def create_arg_parser():
     parser = argparse.ArgumentParser(
         description="Downloads materials from Coursera.")
@@ -222,7 +236,10 @@ def create_arg_parser():
                         nargs='*', default=[], choices=TYPES)
     parser.add_argument('-f', '--force', action='store_true')
     parser.add_argument('-e', '--escape', action='store_true')
-    parser.add_argument('-v', '--verbose', action='count')
+    parser.add_argument('-v', '--verbose', action='store_true')
+    parser.add_argument(
+        '-l', '--logging', default='critical',
+        choices=('debug', 'info', 'warning', 'error', 'critical'))
     return parser
 
 
@@ -240,36 +257,36 @@ def get_downloader_class(course):
     return GenericDownloader.downloader(course)
 
 
+def is_verbose():
+    return logging.getLogger().level <= logging.INFO
+
+
+def configure_logging(ns):
+    if ns.verbose:
+        level = logging.INFO
+    else:
+        if ns.logging == 'debug':
+            level = logging.DEBUG
+        elif ns.logging == 'info':
+            level = logging.INFO
+        elif ns.logging == 'warning':
+            level = logging.WARNING
+        elif ns.logging == 'error':
+            level = logging.ERROR
+        elif ns.logging == 'critical':
+            level = logging.CRITICAL
+    logging.basicConfig(level=level, format="%(message)s")
+
+
 def main():
-    global verbose
     arg_parser = create_arg_parser()
     ns = arg_parser.parse_args(sys.argv[1:])
+    configure_logging(ns)
     config = create_config(ns)
-    verbose = ns.verbose
     dl_class = get_downloader_class(ns.course)
     dl = dl_class(config)
     dl.authenticate()
     dl.download()
-
-
-def log(message):
-    if verbose:
-        print message
-
-
-def reporter(blocknum, bs, size):
-    if verbose:
-        block_count = size / bs + 1 if size % bs != 0 else size / bs
-        fraction = float(blocknum) / block_count
-        width = 50
-        stars = '*' * int(width * fraction)
-        spaces = ' ' * (width - len(stars))
-        info = '[ %s%s ] [%s %%]' % (stars, spaces, int(fraction * 100))
-        sys.stdout.write(info)
-        if blocknum < block_count:
-            sys.stdout.write('\r')
-        else:
-            sys.stdout.write('\n')
 
 
 if __name__ == '__main__':
