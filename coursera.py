@@ -209,7 +209,7 @@ class DecrementAction(argparse.Action):
 class TypeReplacementAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         values = [TYPE_REPLACEMENT[value] if value in TYPE_REPLACEMENT.keys()
-                else value for value in values]
+                  else value for value in values]
         setattr(namespace, self.dest, values)
 
 

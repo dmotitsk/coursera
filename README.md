@@ -15,7 +15,7 @@ python coursera.py &lt;course&gt; [-p part1 part2 ...] [-r row1 row2 ...] [-t {p
 * -v or --verbose - be verbose (the same as -l info) (optional)
 * -l or --logging - use specified logging level (optional)
 * -f or --force - override existing files (optional)
-* -e or --escape - escape files and directory names (important for Windows) (optional)
+* -e or --escape - escape file and directory names (important for Windows) (optional)
 
 ###Examples:
 * python coursera.py nlp -v -e - download the whole NLP course in verbose mode and escape file names (skip already downloaded files)
