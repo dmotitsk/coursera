@@ -190,7 +190,7 @@ class GenericDownloader(object):
         dl_name = course.capitalize() + 'Downloader'
         dl_bases = (CourseraDownloader,)
         dl_dict = dict(
-            login_url=('https://www.coursera.org/%s/auth/auth_redirector' +
+            login_url=('https://class.coursera.org/%s/auth/auth_redirector' +
                        '?type=login&subtype=normal&email=') % course,
             home_url='https://class.coursera.org/%s/class/index' % course,
             lectures_url='https://class.coursera.org/%s/lecture/index' %
