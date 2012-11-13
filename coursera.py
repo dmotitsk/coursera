@@ -111,8 +111,9 @@ class CourseraDownloader(object):
         res_type = resource[1]
         url, content_type = self.get_real_resource_info(res_url)
         ext = self.get_file_ext(url, content_type, res_type)
-        filename = self.get_file_name(dir_name, name, ext)
-        self.retrieve(url, filename)
+        if ext:
+            filename = self.get_file_name(dir_name, name, ext)
+            self.retrieve(url, filename)
 
     def retrieve(self, url, filename):
         if os.path.exists(filename) and not self.force:
@@ -163,6 +164,9 @@ class CourseraDownloader(object):
         m = REG_CONT_TYPE_EXT.match(content_type)
         if m:
             return m.group(1)
+        if res_type not in DEFAULT_EXT:
+            logging.info("skipping resource type '%s', still not supported" % res_type)
+            return None
         return DEFAULT_EXT[res_type]
 
     def get_parts(self, doc):
