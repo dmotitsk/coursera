@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import argparse
 import logging
 import os
@@ -88,7 +89,7 @@ class CourseraDownloader(object):
                 part_dir = os.path.join(
                     course_dir,
                     '%02d - %s' % ((idx + 1),
-                    self.escape_name(part_titles[idx].text.strip())))
+                    self.escape_name(part_titles[idx].text).strip()))
                 self.download_part(part_dir, part)
 
     def download_part(self, dir_name, part):
@@ -111,8 +112,9 @@ class CourseraDownloader(object):
         res_type = resource[1]
         url, content_type = self.get_real_resource_info(res_url)
         ext = self.get_file_ext(url, content_type, res_type)
-        filename = self.get_file_name(dir_name, name, ext)
-        self.retrieve(url, filename)
+        if ext:
+            filename = self.get_file_name(dir_name, name, ext)
+            self.retrieve(url, filename)
 
     def retrieve(self, url, filename):
         if os.path.exists(filename) and not self.force:
@@ -142,6 +144,8 @@ class CourseraDownloader(object):
         if self.escape:
             for c in ILLEGAL_CHARS:
                 name = name.replace(c, '_')
+        name = name.replace('&nbsp;', ' ')
+        name = name.replace('&quot;', '"')
         return name
 
     def get_real_resource_info(self, res_url):
@@ -163,15 +167,18 @@ class CourseraDownloader(object):
         m = REG_CONT_TYPE_EXT.match(content_type)
         if m:
             return m.group(1)
+        if res_type not in DEFAULT_EXT:
+            logging.info("skipping resource type '%s', still not supported" % res_type)
+            return None
         return DEFAULT_EXT[res_type]
 
     def get_parts(self, doc):
-        items = select(doc, 'ul.item_section_list')
-        titles = select(doc, 'h3.list_header')
+        items = select(doc, 'ul.course-item-list-section-list')
+        titles = select(doc, 'div.course-item-list-header h3')
         return items, titles
 
     def get_rows(self, doc):
-        rows = select(doc, 'div.item_resource')
+        rows = select(doc, 'div.course-lecture-item-resource')
         titles = select(doc, 'a.lecture-link')
         return rows, titles
 
