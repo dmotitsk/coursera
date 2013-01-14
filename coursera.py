@@ -74,7 +74,8 @@ class CourseraDownloader(object):
     def is_authenticated(self, test_page):
         m = re.search(
             'https://class.coursera.org/%s/auth/logout' % self.course_name,
-            test_page)
+            test_page
+        )
         return m is not None
 
     def download(self):
@@ -88,8 +89,11 @@ class CourseraDownloader(object):
             if self.item_is_needed(self.parts_ids, idx):
                 part_dir = os.path.join(
                     course_dir,
-                    '%02d - %s' % ((idx + 1),
-                    self.escape_name(part_titles[idx].text).strip()))
+                    '%02d - %s' % (
+                        (idx + 1),
+                        self.escape_name(part_titles[idx].text).strip()
+                    )
+                )
                 self.download_part(part_dir, part)
 
     def download_part(self, dir_name, part):
@@ -98,8 +102,14 @@ class CourseraDownloader(object):
         rows, row_names = self.get_rows(part)
         for idx, row in enumerate(rows):
             if self.item_is_needed(self.rows_ids, idx):
-                self.download_row(dir_name, '%02d - %s' % ((idx + 1),
-                                  row_names[idx].text.strip()), row)
+                self.download_row(
+                    dir_name,
+                    '%02d - %s' % (
+                        (idx + 1),
+                        row_names[idx].text.strip()
+                    ),
+                    row
+                )
 
     def download_row(self, dir_name, name, row):
         resources = self.get_resources(row)
@@ -140,12 +150,13 @@ class CourseraDownloader(object):
         return ('%s.%s' % (os.path.join(dir_name, name), ext))
 
     def escape_name(self, name):
-        name = name.replace('/', '_').replace('\\', '_')
+        name = name.replace('/', '_') \
+                   .replace('\\', '_') \
+                   .replace('&nbsp;', ' ') \
+                   .replace('&quot;', '"')
         if self.escape:
             for c in ILLEGAL_CHARS:
                 name = name.replace(c, '_')
-        name = name.replace('&nbsp;', ' ')
-        name = name.replace('&quot;', '"')
         return name
 
     def get_real_resource_info(self, res_url):
