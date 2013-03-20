@@ -14,6 +14,7 @@ except ImportError:
     sys.exit(1)
 
 from soupselect import select
+from urllib import quote_plus, urlencode
 try:
     from config import EMAIL, PASSWORD
 except ImportError:
@@ -45,7 +46,8 @@ DEFAULT_EXT = {
 
 
 class CourseraDownloader(object):
-    login_url = ''
+    coursera_login_url = 'https://www.coursera.org/maestro/api/user/login'
+    class_login_url = ''
     home_url = ''
     lectures_url = ''
     course_name = ''
@@ -60,16 +62,49 @@ class CourseraDownloader(object):
         self.br.set_handle_robots(False)
 
     def authenticate(self):
-        self.br.open(self.login_url)
-        self.br.form = self.br.forms().next()
-        self.br['email'] = EMAIL
-        self.br['password'] = PASSWORD
-        self.br.submit()
+        self.br.open(self.home_url)
+        self.set_csrf_token()
+        logging.debug('CSRF token: %s' % self.csrf_token)
+        self.set_auth_headers()
+        self.br.open(
+            self.coursera_login_url,
+            urlencode({'email_address': EMAIL, 'password': PASSWORD})
+        )
+        self.br.open(self.class_login_url)
+        self.set_session()
+        logging.debug('session: %s' % self.session)
+        self.set_download_headers()
         home_page = self.br.open(self.home_url)
         if not self.is_authenticated(home_page.read()):
             logging.critical("couldn't authenticate")
             sys.exit(1)
         logging.info("successfully authenticated")
+
+    def set_csrf_token(self):
+        self.csrf_token = self.get_cookie_value('csrf_token')
+
+    def set_session(self):
+        self.session = self.get_cookie_value('session')
+
+    def get_cookie_value(self, search_name):
+        for cookie in self.br._ua_handlers['_cookies'].cookiejar:
+            if cookie.name == search_name:
+                return cookie.value
+
+    def set_auth_headers(self):
+        self.br.addheaders = [
+            ('Cookie', 'csrftoken=%s' % self.csrf_token),
+            ('Referer', 'https://www.coursera.org'),
+            ('X-CSRFToken', self.csrf_token),
+        ]
+
+    def set_download_headers(self):
+        self.br.addheaders = [
+            (
+                'Cookie',
+                'csrftoken=%s;session=%s' % (self.csrf_token, self.session)
+            ),
+        ]
 
     def is_authenticated(self, test_page):
         m = re.search(
@@ -205,12 +240,15 @@ class CourseraDownloader(object):
 class GenericDownloader(object):
     @classmethod
     def downloader(cls, course):
+        home_url = 'https://class.coursera.org/%s/class/index' % course
         dl_name = course.capitalize() + 'Downloader'
         dl_bases = (CourseraDownloader,)
         dl_dict = dict(
-            login_url=('https://class.coursera.org/%s/auth/auth_redirector' +
-                       '?type=login&subtype=normal&email=') % course,
-            home_url='https://class.coursera.org/%s/class/index' % course,
+            home_url=home_url,
+            class_login_url=(
+                'https://class.coursera.org/%s/auth/auth_redirector' +
+                '?type=login&subtype=normal&email=&%s'
+            ) % (course, urlencode({'visiting': quote_plus(home_url)})),
             lectures_url='https://class.coursera.org/%s/lecture/index' %
                          course,
             course_name=course)
