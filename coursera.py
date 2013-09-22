@@ -46,7 +46,7 @@ DEFAULT_EXT = {
 
 
 class CourseraDownloader(object):
-    coursera_login_url = 'https://www.coursera.org/maestro/api/user/login'
+    coursera_login_url = 'https://accounts.coursera.org/api/v1/login'
     class_login_url = ''
     home_url = ''
     lectures_url = ''
@@ -68,9 +68,8 @@ class CourseraDownloader(object):
         self.set_auth_headers()
         self.br.open(
             self.coursera_login_url,
-            urlencode({'email_address': EMAIL, 'password': PASSWORD})
+            urlencode({'email': EMAIL, 'password': PASSWORD})
         )
-        self.br.open(self.class_login_url)
         self.set_session()
         logging.debug('session: %s' % self.session)
         self.set_download_headers()
@@ -84,7 +83,7 @@ class CourseraDownloader(object):
         self.csrf_token = self.get_cookie_value('csrf_token')
 
     def set_session(self):
-        self.session = self.get_cookie_value('session')
+        self.session = self.get_cookie_value('CAUTH')
 
     def get_cookie_value(self, search_name):
         for cookie in self.br._ua_handlers['_cookies'].cookiejar:
@@ -94,7 +93,7 @@ class CourseraDownloader(object):
     def set_auth_headers(self):
         self.br.addheaders = [
             ('Cookie', 'csrftoken=%s' % self.csrf_token),
-            ('Referer', 'https://www.coursera.org'),
+            ('Referer', 'https://accounts.coursera.org/signin'),
             ('X-CSRFToken', self.csrf_token),
         ]
 
@@ -102,7 +101,7 @@ class CourseraDownloader(object):
         self.br.addheaders = [
             (
                 'Cookie',
-                'csrftoken=%s;session=%s' % (self.csrf_token, self.session)
+                'csrftoken=%s;CAUTH=%s' % (self.csrf_token, self.session)
             ),
         ]
 
