@@ -1,11 +1,11 @@
-##Download Coursera materials.
+## Download Coursera materials.
 
-###Dependencies:
+### Dependencies:
 * Python 2.7 - for argparse
 * Mechanize
 * BeautifulSoup
 
-###Format:
+### Format:
 python coursera.py &lt;course&gt; [-p part1 part2 ...] [-r row1 row2 ...] [-t {pdf ppt txt srt movie} {pdf ppt txt srt movie} ...] [-v] [-l {debug info warning error critical}] [-f] [-e]
 
 * course - the course name, just look for the according name in the url of the course
@@ -17,7 +17,7 @@ python coursera.py &lt;course&gt; [-p part1 part2 ...] [-r row1 row2 ...] [-t {p
 * -f or --force - override existing files (optional)
 * -e or --escape - escape file and directory names (important for Windows) (optional)
 
-###Examples:
+### Examples:
 * python coursera.py nlp -v -e - download the whole NLP course in verbose mode and escape file names (skip already downloaded files)
 * python coursera.py saas -v -f - download the whole SAAS course in verbose mode (override existing files)
 * python coursera.py saas -l debug -f - download the whole SAAS course with debug logging level (override existing files)
